@@ -1,0 +1,137 @@
+---
+title: "lobster_exploration"
+format: html
+Author: Karol Paya
+editor_options: 
+  chunk_output_type: console
+---
+```{r, message=FALSE, warning=FALSE}
+
+#Load Libraries
+library(tidyverse)
+library(here)
+library(janitor)
+```
+#Task 2
+```{r, message=FALSE, warning=FALSE}
+#Read Data
+lobsters <- read_csv(here("data","Lobster_Abundance_All_Years_20210412.csv"), na = c("-99999", "")) %>% 
+  clean_names() %>% # Convert column names to lower snake case
+  uncount(count) #Convert the data from frequency to case forma:each original row is duplicated as many times as indicated by its corresponding count (column "count").
+```
+
+```{r, message=FALSE, warning=FALSE}
+#Creating a summary table that finds the total counts and mean carapace lengths of lobsters observed in the dataset by site and year.
+ lobster_summary<-lobsters %>%
+  group_by(site,year) %>%
+  summarize(total_counts=sum(size_mm,na.rm=TRUE),
+            average_size_mm= mean(size_mm, na.rm = TRUE))
+
+print(lobster_summary)
+```
+
+```{r, message=FALSE, warning=FALSE}
+#Plotting the data
+ggplot(lobster_summary, aes(x=year,y=total_counts))+geom_point()+facet_wrap(~ site) +                 
+  labs(
+    title = "Total Lobsters Observed by Year",
+    x = "Year",
+    y = "Total Lobsters Observed") 
+```
+
+```{r, message=FALSE, warning=FALSE}
+#Subset of data from 2020
+lobster_2020<-lobsters%>%
+  dplyr::filter(year== 2020)
+
+# Assigning legal status [legal=1, not legal=0]
+lobster_2020$legal <- NA
+for (i in seq_along(lobster_2020$size_mm)) {
+  if (lobster_2020$size_mm[i] > 79.76) {
+    lobster_2020$legal[i] <- 1
+  } 
+  else {
+    lobster_2020$legal[i] <- 0
+  }
+}
+
+print(lobster_2020)
+
+
+#Creating a summary table that finds the total counts and mean carapace lengths of lobsters observed in the dataset by site and year.
+ lobster2020_summary<-lobster_2020 %>%
+  group_by(site,legal) %>%
+  summarize(total_counts=sum(size_mm,na.rm=TRUE))
+
+print(lobster2020_summary)
+```
+
+```{r, message=FALSE, warning=FALSE}
+# Creating a stacked column plot
+ggplot(lobster2020_summary, aes(x = site, y = total_counts, fill = legal)) +
+  geom_col(position = "fill") +
+  labs(title = "Proportion of Legal and Non-Legal Lobsters by Site",
+    x = "Site",
+    y = "Proportion") 
+
+#Site NAPL and Ivee had the largest number of legal lobster. This can be attributed to several key factors associated with MPAs, protection from fishing and improvement in the habitat.
+```
+#Task 3
+
+```{r, message=FALSE, warning=FALSE}
+lobsters_a <- lobsters %>%
+  filter(site %in% c("IVEE", "CARP", "NAP"))
+print(lobsters_a)
+  
+lobsters_b <- lobsters %>%
+  filter(month==8)
+print(lobsters_b)
+
+lobsters_c <- lobsters %>%
+  filter(site %in% c("AQUE"))
+print(lobsters_c)
+
+lobsters_d<- lobsters %>%
+  filter(site != "NAPL")
+print(lobsters_d)
+```
+
+
+```{r, message=FALSE, warning=FALSE}
+#Creating a summary table that finds the std  and mean carapace lengths of lobsters observed in the dataset by site and year.
+lobster_summary2<-lobsters %>%
+  group_by(site,year) %>%
+  summarize(average_size_mm= mean(size_mm, na.rm = TRUE),
+            std=sd(size_mm,na.rm=TRUE))
+
+print(lobster_summary2)
+
+#Summarize maximum carapace length by site and month.
+lobster_summary3<-lobsters %>%
+  group_by(site,month) %>%
+  summarize(max_size=max(size_mm, na.rm = TRUE))
+
+print(lobster_summary3)
+```
+
+
+```{r, message=FALSE, warning=FALSE}
+#create new columns
+lobsters_newcol<-lobsters %>%
+  mutate(size_cm=size_mm/10)%>%
+  mutate(site = tolower(site))%>%
+  mutate(area = as.character(area))
+print(lobsters_newcol)
+```
+
+
+```{r, message=FALSE, warning=FALSE}
+#using case_when() to add new columsn
+lobster_small_large <- lobsters %>%
+  mutate(size_bin = case_when(size_mm <= 70 ~ "small",size_mm > 70 ~ "large"),
+         designation = case_when(site %in% c("IVEE", "NAPL") ~ "MPA",TRUE ~ "not MPA"))
+
+# Print the updated data frame
+print(lobster_small_large)
+
+```
